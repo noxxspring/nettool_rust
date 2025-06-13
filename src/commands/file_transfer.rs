@@ -1,5 +1,6 @@
 use std::{fs::create_dir_all, path::Path};
 
+use indicatif::{ProgressBar, ProgressStyle};
 use tokio::{fs::{ File}, io::{AsyncReadExt, AsyncWriteExt}, net::{TcpListener, TcpStream}};
 
 
@@ -45,8 +46,16 @@ let metadata = match file.metadata().await {
         return;
     }
 
+    let progress = ProgressBar::new(metadata.len());
+    progress.set_style(
+        ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+        .unwrap()
+        .progress_chars("=> ")
+    );
+
 
     let mut buffer = [0u8; 4096];
+    let mut total_sent = 0;
     loop {
         let bytes_read = match file.read(&mut buffer).await {
             Ok(0) => break,
@@ -61,7 +70,12 @@ let metadata = match file.metadata().await {
             eprintln!("Error sending data to {}: {}", address, e);
             return;
         }
+
+        total_sent += bytes_read as u64;
+        progress.set_position(total_sent);
+
     }
+    progress.finish_with_message("File Sent");
 
     println!("File '{}' successfully sent to {}", file_path, address);
 }
@@ -142,7 +156,16 @@ let header_str = match String::from_utf8(header) {
             return;
         }
     };
-         let mut total_read = 0;
+
+    let progress = ProgressBar::new(filesize as u64);
+    progress.set_style(
+       ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.green/white}] {bytes}/{total_bytes} ({eta})")
+        .unwrap()
+        .progress_chars("=> "),
+);
+
+
+    let mut total_read = 0;
     let mut buffer = [0u8; 4096];
     while total_read < filesize {
         let read = match socket.read(&mut buffer).await {
@@ -160,7 +183,11 @@ let header_str = match String::from_utf8(header) {
         }
 
         total_read += read;
+        progress.set_position(total_read as u64);
+
     }
+
+    progress.finish_with_message("File received");
 
     println!("Received file '{}' ({} bytes)", filename, total_read);
     }
