@@ -17,7 +17,16 @@ enum Commands {
         #[command(subcommand)]
         mode: FileTransferMode,
     },
-    EncryptedChat,
+    EncryptedChat{
+         #[arg(short, long)]
+        mode: String, // "server" or "client"
+
+        #[arg(short = 'H', long, default_value = "127.0.0.1")]
+        host: String,
+
+        #[arg(short, long)]
+        port: u16,
+    },
     PortScan,
     ShellAccess,
     
@@ -46,7 +55,7 @@ enum FileTransferMode {
 
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>{
     let cli = Cli::parse();
 
     match cli.command {
@@ -59,9 +68,16 @@ async fn main() {
             }
             
         },
-        Commands::EncryptedChat => commands::encrypted_chat::run().await,
+          Commands::EncryptedChat { mode, host, port } => {
+            match mode.to_lowercase().as_str() {
+                "server" => commands::encrypted_chat::chat_server(port).await?,
+                "client" => commands::encrypted_chat::chat_client(&host, port).await?,
+                _ => eprintln!("Invalid mode. Use 'server' or 'client'."),
+            }
+        }
         Commands::PortScan => commands::port_scan::run().await,
         Commands::ShellAccess => commands::shell_access::run().await,
         
     }
+Ok(())
 }

@@ -8,7 +8,7 @@ use aes::cipher::generic_array::GenericArray;
 type Aes256CbcEnc = Encryptor<Aes256>;
 type Aes256CbcDec = Decryptor<Aes256>;
 
-pub fn encrypt_chunk(data: &[u8], key: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn encrypt_chunk(data: &[u8], key: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
     if key.len() != 32 {
         return Err("Key must be 32 bytes".into());
     }
@@ -27,7 +27,7 @@ pub fn encrypt_chunk(data: &[u8], key: &[u8]) -> Result<Vec<u8>, Box<dyn std::er
     Ok(result)
 }
 
-pub fn decrypt_chunk(data: &[u8], key: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn decrypt_chunk(data: &[u8], key: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
     if key.len() != 32 {
         return Err("Key must be 32 bytes".into());
     }
