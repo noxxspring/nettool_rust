@@ -28,8 +28,12 @@ enum Commands {
         port: u16,
     },
     PortScan,
-    ShellAccess,
-    
+
+     ShellAccess {
+        #[command(subcommand)]
+        mode: ShellMode,
+    },
+
 }
 
 #[derive(Subcommand)]
@@ -50,6 +54,23 @@ enum FileTransferMode {
 
         #[arg(short, long)]
         output: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum ShellMode {
+    /// Listen for incoming shell access on a port
+    Listen {
+        #[arg(short, long)]
+        port: u16,
+    },
+    /// Connect to a remote shell at given IP and port
+    Connect {
+        #[arg(short = 'H', long)]
+        host: String,
+
+        #[arg(short, long)]
+        port: u16,
     },
 }
 
@@ -76,8 +97,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>{
             }
         }
         Commands::PortScan => commands::port_scan::run().await,
-        Commands::ShellAccess => commands::shell_access::run().await,
-        
+        Commands::ShellAccess { mode } => match mode {
+            ShellMode::Listen { port } => {
+                let _ = commands::shell_access::start_listener(port);
+            }
+            ShellMode::Connect { host, port } => {
+                let _ = commands::shell_access::start_connector(&host, port);
+            }
+        },
     }
-Ok(())
+
+    Ok(())
 }
+        
